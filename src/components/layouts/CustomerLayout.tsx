@@ -1,7 +1,7 @@
 
 import { Outlet } from "react-router-dom";
 import { Link, useLocation } from "react-router-dom";
-import { Home, CreditCard, User } from "lucide-react";
+import { Home, CreditCard, User, Wifi } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,13 @@ const CustomerLayout = () => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-white/95 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-primary">Loyalty App</h1>
+        <div className="flex items-center">
+          <h1 className="text-xl font-semibold text-primary">Loyalty App</h1>
+          <div className="ml-2 flex items-center text-xs text-primary/70">
+            <Wifi className="h-3 w-3 mr-1 animate-pulse" />
+            <span>Live</span>
+          </div>
+        </div>
         <Button variant="ghost" size="icon" onClick={handleAccountClick}>
           <Avatar className="h-8 w-8">
             <AvatarImage src="" alt="User" />

@@ -1,13 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Store, ArrowRight } from "lucide-react";
+import { useRealTimeUpdates } from "@/hooks/useRealTimeUpdates";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample data
-const loyaltyCards = [
+const initialLoyaltyCards = [
   {
     id: 1,
     name: "Gourmet Bistro",
@@ -61,6 +63,10 @@ const loyaltyCards = [
 const CustomerCards = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
+  const { toast } = useToast();
+  
+  // Use our custom hook for real-time updates
+  const { cards: loyaltyCards, updatedCardId } = useRealTimeUpdates(initialLoyaltyCards);
   
   const handleImageLoad = (imageUrl: string) => {
     setLoadedImages((prev) => ({
@@ -73,6 +79,20 @@ const CustomerCards = () => {
     card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     card.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  // Show a toast notification when points are updated
+  useEffect(() => {
+    if (updatedCardId !== null) {
+      const updatedCard = loyaltyCards.find(card => card.id === updatedCardId);
+      if (updatedCard) {
+        toast({
+          title: "Points Updated!",
+          description: `You've earned new points at ${updatedCard.name}!`,
+          duration: 3000,
+        });
+      }
+    }
+  }, [updatedCardId, loyaltyCards, toast]);
   
   return (
     <div className="space-y-6 pb-16 animate-fade-in">
@@ -105,7 +125,7 @@ const CustomerCards = () => {
         <div className="space-y-4">
           {filteredCards.map((card) => (
             <Link key={card.id} to={`/customer/cards/${card.id}`}>
-              <Card className="overflow-hidden transition-all duration-200 hover:shadow-md">
+              <Card className={`overflow-hidden transition-all duration-200 hover:shadow-md ${updatedCardId === card.id ? 'ring-2 ring-primary animate-pulse-gentle' : ''}`}>
                 <CardContent className="p-0">
                   <div className="flex">
                     <div className="relative w-24 h-24 bg-muted">
@@ -138,7 +158,7 @@ const CustomerCards = () => {
                       <div className="mt-2">
                         <div className="flex justify-between text-sm mb-1">
                           <span>Progress</span>
-                          <span className="font-medium">
+                          <span className={`font-medium ${updatedCardId === card.id ? 'text-primary' : ''}`}>
                             {card.points} / {card.redemptionThreshold}
                           </span>
                         </div>
