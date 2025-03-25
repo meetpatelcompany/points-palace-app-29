@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 
 // This interface represents a card from the loyalty cards data
@@ -11,41 +10,39 @@ interface LoyaltyCard {
   redemptionThreshold: number;
 }
 
-// This is a simulated real-time updates hook
+// This is a hook that will be replaced with real database connection
 export const useRealTimeUpdates = (initialCards: LoyaltyCard[]) => {
   const [cards, setCards] = useState<LoyaltyCard[]>(initialCards);
   const [updatedCardId, setUpdatedCardId] = useState<number | null>(null);
 
-  // Simulate occasional real-time updates
+  // This simulated effect will be replaced with a real database subscription
   useEffect(() => {
-    // Create an interval that will occasionally update a random card's points
+    // In a real implementation, this would be replaced with:
+    // 1. A subscription to a real-time database like Supabase, Firebase, or a WebSocket connection
+    // 2. The interval and random updates would be removed
+    // 3. The setCards and setUpdatedCardId would be called when real database events occur
+    
+    // For now, we keep the simulation but comment what would change
     const interval = setInterval(() => {
-      // Only update with 30% probability to make it feel more natural
       if (Math.random() > 0.7 && cards.length > 0) {
-        // Select a random card to update
         const randomIndex = Math.floor(Math.random() * cards.length);
         const randomCard = cards[randomIndex];
-        
-        // Generate a small random point change (between 10-50 points)
         const pointChange = Math.floor(Math.random() * 40) + 10;
         
-        // Create a new array with the updated card
         const updatedCards = [...cards];
         updatedCards[randomIndex] = {
           ...randomCard,
           points: Math.min(randomCard.points + pointChange, randomCard.redemptionThreshold)
         };
         
-        // Update the state
         setCards(updatedCards);
         setUpdatedCardId(randomCard.id);
         
-        // Reset the updated card id after the animation completes
         setTimeout(() => {
           setUpdatedCardId(null);
         }, 2000);
       }
-    }, 8000); // Check every 8 seconds
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [cards]);
