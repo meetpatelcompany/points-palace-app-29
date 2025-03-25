@@ -10,22 +10,44 @@ import { useToast } from "@/hooks/use-toast";
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState("");
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // In a real app, you would handle registration here
+    setError("");
+
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
+    if (formData.phone.length < 10) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+
+    // In a real app, you would send this data to your backend
     toast({
       title: "Account created",
-      description: "You have successfully registered. You can now log in.",
+      description: "Your account has been created successfully!",
     });
-    
-    navigate("/login");
+
+    navigate("/customer/home");
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <Link to="/" className="mb-8 text-2xl font-bold text-primary">
@@ -36,9 +58,15 @@ const Register = () => {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Create an account</CardTitle>
           <CardDescription className="text-center">
-            Sign up to start earning rewards
+            Join our loyalty program to earn rewards
           </CardDescription>
         </CardHeader>
+        
+        {error && (
+          <div className="mx-6 mb-2 p-2 bg-destructive/10 text-destructive text-sm rounded-md">
+            {error}
+          </div>
+        )}
         
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
@@ -46,53 +74,73 @@ const Register = () => {
               <Label htmlFor="name">Full Name</Label>
               <Input 
                 id="name" 
+                name="name"
                 placeholder="John Doe" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={formData.name}
+                onChange={handleInputChange}
                 required
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 
                 id="email" 
+                name="email"
                 type="email" 
                 placeholder="your@email.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleInputChange}
                 required
               />
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input 
+                id="phone" 
+                name="phone"
+                type="tel" 
+                placeholder="Your phone number" 
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input 
                 id="password" 
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)} 
+                name="password"
+                type="password" 
+                value={formData.password}
+                onChange={handleInputChange}
                 required
               />
             </div>
-            <Button type="submit" className="w-full">Create account</Button>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input 
+                id="confirmPassword" 
+                name="confirmPassword"
+                type="password" 
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            
+            <Button type="submit" className="w-full">Create Account</Button>
           </form>
         </CardContent>
         
-        <CardFooter className="flex flex-col space-y-4">
+        <CardFooter className="flex flex-col space-y-4 mt-4">
           <div className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}
             <Link to="/login" className="text-primary hover:underline">
               Sign in
-            </Link>
-          </div>
-          
-          <div className="text-xs text-center text-muted-foreground">
-            By creating an account, you agree to our{" "}
-            <Link to="#" className="text-primary hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link to="#" className="text-primary hover:underline">
-              Privacy Policy
             </Link>
           </div>
         </CardFooter>

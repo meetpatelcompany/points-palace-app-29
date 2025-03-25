@@ -14,27 +14,50 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState("customer");
+  const [error, setError] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
-    // In a real app, you would handle authentication here
-    let redirectPath = "/customer/home";
-    
+    // Admin default credentials check
     if (userType === "admin") {
-      redirectPath = "/admin/dashboard";
-    } else if (userType === "restaurant") {
-      redirectPath = "/restaurant/dashboard";
-    } else if (userType === "scanner") {
-      redirectPath = "/scanner";
+      if (email === "admin@gmail.com" && password === "admin") {
+        toast({
+          title: "Logged in as Admin",
+          description: "Welcome to the admin dashboard.",
+        });
+        navigate("/admin/dashboard");
+        return;
+      } else {
+        setError("Invalid admin credentials");
+        return;
+      }
     }
     
-    toast({
-      title: "Logged in",
-      description: `Logged in as ${userType}`,
-    });
+    // For restaurant and scanner logins, we would check against admin-created credentials
+    // In a real app, this would verify against a database
+    if (userType === "restaurant" || userType === "scanner") {
+      // This is just a placeholder. In a real app, you would validate against actual credentials
+      toast({
+        title: "Authentication required",
+        description: `${userType === "restaurant" ? "Restaurant" : "Scanner"} accounts must be created by an admin.`,
+      });
+      
+      // For demo purposes, we'll still allow login
+      let redirectPath = userType === "restaurant" ? "/restaurant/dashboard" : "/scanner";
+      navigate(redirectPath);
+      return;
+    }
     
-    navigate(redirectPath);
+    // Customer login - in a real app, this would check against registered customers
+    if (userType === "customer") {
+      toast({
+        title: "Logged in",
+        description: "Welcome to your loyalty cards.",
+      });
+      navigate("/customer/home");
+    }
   };
   
   return (
@@ -58,6 +81,12 @@ const Login = () => {
             <TabsTrigger value="restaurant">Restaurant</TabsTrigger>
             <TabsTrigger value="scanner">Scanner</TabsTrigger>
           </TabsList>
+          
+          {error && (
+            <div className="mx-6 mb-2 p-2 bg-destructive/10 text-destructive text-sm rounded-md">
+              {error}
+            </div>
+          )}
           
           <TabsContent value="customer">
             <CardContent>
@@ -101,7 +130,7 @@ const Login = () => {
                   <Input 
                     id="admin-email" 
                     type="email" 
-                    placeholder="admin@loyalty.app" 
+                    placeholder="admin@gmail.com" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -183,10 +212,21 @@ const Login = () => {
         
         <CardFooter className="flex flex-col space-y-4 mt-4">
           <div className="text-sm text-center text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              Sign up
-            </Link>
+            {userType === "customer" ? (
+              <>
+                Don't have an account?{" "}
+                <Link to="/register" className="text-primary hover:underline">
+                  Sign up
+                </Link>
+              </>
+            ) : (
+              <>
+                {userType === "admin" ? 
+                  "Admin accounts are pre-configured." : 
+                  `${userType === "restaurant" ? "Restaurant" : "Scanner"} accounts must be created by an admin.`
+                }
+              </>
+            )}
           </div>
         </CardFooter>
       </Card>
