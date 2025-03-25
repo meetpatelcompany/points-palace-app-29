@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 // This interface represents a card from the loyalty cards data
 interface LoyaltyCard {
@@ -10,41 +12,54 @@ interface LoyaltyCard {
   redemptionThreshold: number;
 }
 
-// This is a hook that will be replaced with real database connection
+// This hook connects to Supabase for real-time updates
 export const useRealTimeUpdates = (initialCards: LoyaltyCard[]) => {
   const [cards, setCards] = useState<LoyaltyCard[]>(initialCards);
   const [updatedCardId, setUpdatedCardId] = useState<number | null>(null);
 
-  // This simulated effect will be replaced with a real database subscription
+  // Subscribe to real-time updates on customer_cards table
   useEffect(() => {
-    // In a real implementation, this would be replaced with:
-    // 1. A subscription to a real-time database like Supabase, Firebase, or a WebSocket connection
-    // 2. The interval and random updates would be removed
-    // 3. The setCards and setUpdatedCardId would be called when real database events occur
-    
-    // For now, we keep the simulation but comment what would change
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7 && cards.length > 0) {
-        const randomIndex = Math.floor(Math.random() * cards.length);
-        const randomCard = cards[randomIndex];
-        const pointChange = Math.floor(Math.random() * 40) + 10;
-        
-        const updatedCards = [...cards];
-        updatedCards[randomIndex] = {
-          ...randomCard,
-          points: Math.min(randomCard.points + pointChange, randomCard.redemptionThreshold)
-        };
-        
-        setCards(updatedCards);
-        setUpdatedCardId(randomCard.id);
-        
-        setTimeout(() => {
-          setUpdatedCardId(null);
-        }, 2000);
-      }
-    }, 8000);
+    // Subscribe to changes on the customer_cards table
+    const channel = supabase
+      .channel('customer-cards-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'customer_cards'
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          
+          // Find and update the card in our local state
+          if (payload.new && cards.length > 0) {
+            const cardId = payload.new.card_id;
+            const updatedCard = cards.find(card => card.id === cardId);
+            
+            if (updatedCard) {
+              const newCards = cards.map(card => 
+                card.id === cardId 
+                  ? { ...card, points: payload.new.points } 
+                  : card
+              );
+              
+              setCards(newCards);
+              setUpdatedCardId(cardId as number);
+              
+              setTimeout(() => {
+                setUpdatedCardId(null);
+              }, 2000);
+            }
+          }
+        }
+      )
+      .subscribe();
 
-    return () => clearInterval(interval);
+    // Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [cards]);
 
   return { cards, updatedCardId };
