@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -34,60 +34,19 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreVertical, Edit, Trash2, Store, Mail, Plus } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, Store, Mail, Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Sample restaurant data
-const initialRestaurants = [
-  {
-    id: 1,
-    name: "Gourmet Bistro",
-    email: "contact@gourmetbistro.com",
-    status: "active",
-    customers: 245,
-    joinDate: "Jan 12, 2023",
-  },
-  {
-    id: 2,
-    name: "Pizza Palace",
-    email: "info@pizzapalace.com",
-    status: "active",
-    customers: 187,
-    joinDate: "Feb 23, 2023",
-  },
-  {
-    id: 3,
-    name: "Sushi Heaven",
-    email: "hello@sushiheaven.com",
-    status: "active",
-    customers: 163,
-    joinDate: "Mar 8, 2023",
-  },
-  {
-    id: 4,
-    name: "Burger Joint",
-    email: "support@burgerjoint.com",
-    status: "active",
-    customers: 119,
-    joinDate: "Apr 17, 2023",
-  },
-  {
-    id: 5,
-    name: "Taco Time",
-    email: "hola@tacotime.com",
-    status: "inactive",
-    customers: 97,
-    joinDate: "May 5, 2023",
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminRestaurants = () => {
   const { toast } = useToast();
-  const [restaurants, setRestaurants] = useState(initialRestaurants);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(true);
   const [currentRestaurant, setCurrentRestaurant] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form fields
   const [formData, setFormData] = useState({
@@ -97,6 +56,35 @@ const AdminRestaurants = () => {
     password: "",
     confirmPassword: "",
   });
+
+  // Fetch restaurants from Supabase
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('*')
+          .order('join_date', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        setRestaurants(data || []);
+      } catch (error) {
+        console.error("Error fetching restaurants:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load restaurants. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRestaurants();
+  }, [toast]);
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -141,7 +129,7 @@ const AdminRestaurants = () => {
     });
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
@@ -152,61 +140,114 @@ const AdminRestaurants = () => {
       });
       return;
     }
+
+    setIsSubmitting(true);
     
-    if (isCreating) {
-      // Create new restaurant
-      const newRestaurant = {
-        id: restaurants.length + 1,
-        name: formData.name,
-        email: formData.email,
-        status: formData.status ? "active" : "inactive",
-        customers: 0,
-        joinDate: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-      };
-      
-      setRestaurants([...restaurants, newRestaurant]);
-      
-      toast({
-        title: "Restaurant created",
-        description: `${formData.name} has been successfully created.`,
-      });
-    } else {
-      // Update existing restaurant
-      const updatedRestaurants = restaurants.map((restaurant) =>
-        restaurant.id === currentRestaurant.id
-          ? {
-              ...restaurant,
+    try {
+      if (isCreating) {
+        // In a real implementation, you would:
+        // 1. Create an auth user account with the email and password
+        // 2. Then create a restaurant record
+        
+        // For now, just create the restaurant record
+        const { data, error } = await supabase
+          .from('restaurants')
+          .insert([
+            {
               name: formData.name,
               email: formData.email,
               status: formData.status ? "active" : "inactive",
             }
-          : restaurant
-      );
+          ])
+          .select();
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setRestaurants([data[0], ...restaurants]);
+          
+          toast({
+            title: "Restaurant created",
+            description: `${formData.name} has been successfully created.`,
+          });
+        }
+      } else {
+        // Update existing restaurant
+        const { error } = await supabase
+          .from('restaurants')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            status: formData.status ? "active" : "inactive",
+          })
+          .eq('id', currentRestaurant.id);
+        
+        if (error) throw error;
+        
+        // Update local state
+        setRestaurants(restaurants.map((restaurant) =>
+          restaurant.id === currentRestaurant.id
+            ? {
+                ...restaurant,
+                name: formData.name,
+                email: formData.email,
+                status: formData.status ? "active" : "inactive",
+              }
+            : restaurant
+        ));
+        
+        toast({
+          title: "Restaurant updated",
+          description: `${formData.name} has been successfully updated.`,
+        });
+      }
       
-      setRestaurants(updatedRestaurants);
+      setOpenDialog(false);
+    } catch (error: any) {
+      console.error("Error saving restaurant:", error);
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleDeleteRestaurant = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('restaurants')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setRestaurants(restaurants.filter((restaurant) => restaurant.id !== id));
       
       toast({
-        title: "Restaurant updated",
-        description: `${formData.name} has been successfully updated.`,
+        title: "Restaurant deleted",
+        description: "The restaurant has been successfully deleted.",
+      });
+    } catch (error: any) {
+      console.error("Error deleting restaurant:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete restaurant. Please try again.",
+        variant: "destructive",
       });
     }
-    
-    setOpenDialog(false);
   };
   
-  const handleDeleteRestaurant = (id: number) => {
-    setRestaurants(restaurants.filter((restaurant) => restaurant.id !== id));
-    
-    toast({
-      title: "Restaurant deleted",
-      description: "The restaurant has been successfully deleted.",
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
-  
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -241,83 +282,90 @@ const AdminRestaurants = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Restaurant</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Customers</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRestaurants.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-muted-foreground">Loading restaurants...</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No restaurants found
-                  </TableCell>
+                  <TableHead>Restaurant</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Customers</TableHead>
+                  <TableHead>Join Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filteredRestaurants.map((restaurant) => (
-                  <TableRow key={restaurant.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-2">
-                          <Store className="h-4 w-4" />
-                        </div>
-                        {restaurant.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {restaurant.email}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          restaurant.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {restaurant.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{restaurant.customers}</TableCell>
-                    <TableCell>{restaurant.joinDate}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => openEditDialog(restaurant)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDeleteRestaurant(restaurant.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              </TableHeader>
+              <TableBody>
+                {filteredRestaurants.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No restaurants found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredRestaurants.map((restaurant) => (
+                    <TableRow key={restaurant.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-2">
+                            <Store className="h-4 w-4" />
+                          </div>
+                          {restaurant.name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {restaurant.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            restaurant.status === "active"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {restaurant.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{restaurant.customers_count || 0}</TableCell>
+                      <TableCell>{formatDate(restaurant.join_date)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => openEditDialog(restaurant)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteRestaurant(restaurant.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       
@@ -381,40 +429,51 @@ const AdminRestaurants = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="password" className="text-right">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder={isCreating ? "Create password" : "New password (optional)"}
-                  className="col-span-3"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required={isCreating}
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="confirmPassword" className="text-right">
-                  Confirm
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirm password"
-                  className="col-span-3"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required={isCreating || formData.password.length > 0}
-                />
-              </div>
+              {isCreating && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="password" className="text-right">
+                      Password
+                    </Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder={isCreating ? "Create password" : "New password (optional)"}
+                      className="col-span-3"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required={isCreating}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="confirmPassword" className="text-right">
+                      Confirm
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      placeholder="Confirm password"
+                      className="col-span-3"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      required={isCreating || formData.password.length > 0}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <DialogFooter>
-              <Button type="submit">
-                {isCreating ? "Create Restaurant" : "Save Changes"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isCreating ? "Creating..." : "Saving..."}
+                  </>
+                ) : (
+                  isCreating ? "Create Restaurant" : "Save Changes"
+                )}
               </Button>
             </DialogFooter>
           </form>
