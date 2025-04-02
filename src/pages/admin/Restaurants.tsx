@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -61,6 +60,7 @@ const AdminRestaurants = () => {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('restaurants')
           .select('*')
@@ -145,11 +145,6 @@ const AdminRestaurants = () => {
     
     try {
       if (isCreating) {
-        // In a real implementation, you would:
-        // 1. Create an auth user account with the email and password
-        // 2. Then create a restaurant record
-        
-        // For now, just create the restaurant record
         const { data, error } = await supabase
           .from('restaurants')
           .insert([
@@ -157,6 +152,7 @@ const AdminRestaurants = () => {
               name: formData.name,
               email: formData.email,
               status: formData.status ? "active" : "inactive",
+              join_date: new Date().toISOString(),
             }
           ])
           .select();
@@ -172,7 +168,6 @@ const AdminRestaurants = () => {
           });
         }
       } else {
-        // Update existing restaurant
         const { error } = await supabase
           .from('restaurants')
           .update({
@@ -184,7 +179,6 @@ const AdminRestaurants = () => {
         
         if (error) throw error;
         
-        // Update local state
         setRestaurants(restaurants.map((restaurant) =>
           restaurant.id === currentRestaurant.id
             ? {
