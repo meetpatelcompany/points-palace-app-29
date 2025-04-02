@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminRestaurants from "./pages/admin/Restaurants";
 import AdminCustomers from "./pages/admin/Customers";
 import AdminSliders from "./pages/admin/Sliders";
+import ContentLinks from "./pages/admin/ContentLinks";
 
 // Restaurant dashboard pages
 import RestaurantDashboard from "./pages/restaurant/Dashboard";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="restaurants" element={<AdminRestaurants />} />
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="sliders" element={<AdminSliders />} />
+            <Route path="content" element={<ContentLinks />} />
           </Route>
           
           {/* Restaurant Dashboard */}

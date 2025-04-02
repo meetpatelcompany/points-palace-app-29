@@ -15,7 +15,8 @@ const AdminDashboard = () => {
     activeRestaurants: 0,
     totalCustomers: 0,
     totalPoints: 0,
-    redeemedPoints: 0
+    redeemedPoints: 0,
+    totalContentLinks: 0
   });
   
   // Monthly user growth data - in a real app would come from database
@@ -64,17 +65,13 @@ const AdminDashboard = () => {
         
         if (activeError) throw activeError;
         
-        // Count all customers (simplified - would normally be a more complex query)
-        // In a real app, you might have a dedicated customers table or aggregate this data
-        const { data: customerCards, error: customerError } = await supabase
-          .from('customer_cards')
-          .select('customer_id')
-          .limit(1000);
+        // Count all customers from profiles with role = 'customer'
+        const { count: totalCustomers, error: customerError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'customer');
         
         if (customerError) throw customerError;
-        
-        // Get unique customer count
-        const uniqueCustomers = new Set(customerCards?.map(card => card.customer_id));
         
         // Get total points data
         const { data: pointsData, error: pointsError } = await supabase
@@ -82,6 +79,13 @@ const AdminDashboard = () => {
           .select('transaction_type, points, restaurant_id');
         
         if (pointsError) throw pointsError;
+        
+        // Get count of content links
+        const { count: totalContentLinks, error: contentLinksError } = await supabase
+          .from('content_links')
+          .select('*', { count: 'exact', head: true });
+          
+        if (contentLinksError) throw contentLinksError;
         
         // Calculate total and redeemed points
         let totalPoints = 0;
@@ -118,9 +122,10 @@ const AdminDashboard = () => {
         setStatsData({
           totalRestaurants: totalRestaurants || 0,
           activeRestaurants: activeRestaurants || 0,
-          totalCustomers: uniqueCustomers.size,
+          totalCustomers: totalCustomers || 0,
           totalPoints,
-          redeemedPoints
+          redeemedPoints,
+          totalContentLinks: totalContentLinks || 0
         });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -155,9 +160,9 @@ const AdminDashboard = () => {
       description: "Across all restaurants"
     },
     {
-      title: "Points Redeemed",
-      value: statsData.redeemedPoints.toLocaleString(),
-      description: `${statsData.redeemedPoints > 0 ? Math.round((statsData.redeemedPoints / statsData.totalPoints) * 100) : 0}% redemption rate`
+      title: "Content Links",
+      value: statsData.totalContentLinks.toLocaleString(),
+      description: "Promotional and informational links"
     }
   ];
 

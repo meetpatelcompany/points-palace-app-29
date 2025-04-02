@@ -8,7 +8,8 @@ import {
   Image, 
   Menu, 
   X, 
-  LogOut
+  LogOut,
+  Link as LinkIcon
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,8 @@ const AdminLayout = () => {
     { path: "/admin/dashboard", icon: BarChart3, label: "Dashboard" },
     { path: "/admin/restaurants", icon: Store, label: "Restaurants" },
     { path: "/admin/customers", icon: Users, label: "Customers" },
-    { path: "/admin/sliders", icon: Image, label: "Manage Content" }
+    { path: "/admin/sliders", icon: Image, label: "Manage Content" },
+    { path: "/admin/content", icon: LinkIcon, label: "Content Links" }
   ];
   
   const handleLogout = () => {
