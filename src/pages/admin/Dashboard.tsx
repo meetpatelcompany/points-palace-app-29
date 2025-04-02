@@ -79,7 +79,7 @@ const AdminDashboard = () => {
         // Get total points data
         const { data: pointsData, error: pointsError } = await supabase
           .from('point_transactions')
-          .select('transaction_type, points');
+          .select('transaction_type, points, restaurant_id');
         
         if (pointsError) throw pointsError;
         
@@ -96,14 +96,23 @@ const AdminDashboard = () => {
         });
         
         // Prepare the restaurant data for display
-        const formattedRestaurants = restaurants?.map(restaurant => ({
-          name: restaurant.name,
-          active: restaurant.status === 'active',
-          customers: restaurant.customers_count || 0,
-          points: (pointsData || [])
-            .filter(tx => tx.restaurant_id === restaurant.id && tx.transaction_type === 'add')
-            .reduce((sum, tx) => sum + tx.points, 0)
-        })) || [];
+        const formattedRestaurants = restaurants?.map(restaurant => {
+          // Get all point transactions for this restaurant
+          const restaurantPoints = pointsData?.filter(tx => 
+            tx.restaurant_id === restaurant.id && 
+            tx.transaction_type === 'add'
+          ) || [];
+          
+          // Sum up the points
+          const totalRestaurantPoints = restaurantPoints.reduce((sum, tx) => sum + tx.points, 0);
+          
+          return {
+            name: restaurant.name,
+            active: restaurant.status === 'active',
+            customers: restaurant.customers_count || 0,
+            points: totalRestaurantPoints
+          };
+        }) || [];
         
         setRestaurantData(formattedRestaurants);
         setStatsData({
