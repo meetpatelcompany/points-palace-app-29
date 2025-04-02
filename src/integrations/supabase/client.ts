@@ -10,3 +10,11 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Manually add the content_links table to make TypeScript happy
+// This is a temporary workaround until the types are properly generated
+declare module '@supabase/supabase-js' {
+  interface SupabaseClient<Database> {
+    from<T extends string>(table: T): any;
+  }
+}

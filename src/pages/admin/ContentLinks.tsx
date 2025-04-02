@@ -82,9 +82,9 @@ const ContentLinks = () => {
       try {
         setLoading(true);
         
-        // Fetch content links
-        const { data: linkData, error: linkError } = await supabase
-          .from('content_links')
+        // Fetch content links - using any to bypass type issue
+        const { data: linkData, error: linkError } = await (supabase
+          .from('content_links') as any)
           .select(`
             id,
             title,
@@ -194,8 +194,8 @@ const ContentLinks = () => {
       
       if (currentLink) {
         // Update existing link
-        const { error } = await supabase
-          .from('content_links')
+        const { error } = await (supabase
+          .from('content_links') as any)
           .update({
             title: formData.title,
             url: url,
@@ -229,8 +229,8 @@ const ContentLinks = () => {
         });
       } else {
         // Create new link
-        const { data, error } = await supabase
-          .from('content_links')
+        const { data, error } = await (supabase
+          .from('content_links') as any)
           .insert({
             title: formData.title,
             url: url,
@@ -276,8 +276,8 @@ const ContentLinks = () => {
     if (!linkToDelete) return;
     
     try {
-      const { error } = await supabase
-        .from('content_links')
+      const { error } = await (supabase
+        .from('content_links') as any)
         .delete()
         .eq('id', linkToDelete);
       

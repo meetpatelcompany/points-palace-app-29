@@ -80,9 +80,9 @@ const AdminDashboard = () => {
         
         if (pointsError) throw pointsError;
         
-        // Get count of content links
-        const { count: totalContentLinks, error: contentLinksError } = await supabase
-          .from('content_links')
+        // Get count of content links - using any to bypass type issue
+        const { count: totalContentLinks, error: contentLinksError } = await (supabase
+          .from('content_links') as any)
           .select('*', { count: 'exact', head: true });
           
         if (contentLinksError) throw contentLinksError;
